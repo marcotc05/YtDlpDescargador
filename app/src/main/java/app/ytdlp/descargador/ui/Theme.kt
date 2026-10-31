@@ -6,6 +6,7 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -82,6 +83,8 @@ private val Dark = darkColorScheme(
     onErrorContainer = Color(0xFFFFDAD6),
 )
 
+// LÍNEA CORREGIDA: Se añade @OptIn encima de la función
+@OptIn(ExperimentalTextApi::class)
 private fun bricolage(weight: Int) = Font(
     R.font.bricolage,
     weight = FontWeight(weight),
