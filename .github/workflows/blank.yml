@@ -11,7 +11,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # CR?TICO: 20 min es insuficiente. 60 da margen al primer build (sin cach?).
     timeout-minutes: 60
 
     env:
@@ -51,20 +50,45 @@ jobs:
           if [ ! -f "gradlew" ] \
              || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] \
              || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-            echo "::warning::Wrapper incompleto; regenerando con Gradle 8.7"
-            gradle wrapper --gradle-version 8.7 --distribution-type bin
+            echo "::warning::Wrapper incompleto; regenerando con Gradle 8.9"
+            gradle wrapper --gradle-version 8.9 --distribution-type bin
           fi
           chmod +x ./gradlew
           ./gradlew --version
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug -x lint --stacktrace
+      # El APK release se firma con la llave de depuración (instalable, no apto para Play Store).
+      # Se crea explícitamente para no depender de que AGP la genere en el runner.
+      - name: Create debug keystore
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f ~/.android/debug.keystore ]; then
+            keytool -genkeypair -v -keystore ~/.android/debug.keystore \
+              -storepass android -keypass android -alias androiddebugkey \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Build Release APK (R8 + resource shrinking)
+        run: ./gradlew assembleRelease -x lint --stacktrace
+
+      - name: Report APK sizes
+        if: always()
+        run: |
+          {
+            echo "### Tamaño de los APK"
+            echo ""
+            echo "| Archivo | Tamaño |"
+            echo "|---|---|"
+            for f in app/build/outputs/apk/release/*.apk; do
+              [ -f "$f" ] && echo "| $(basename "$f") | $(du -h "$f" | cut -f1) ($(stat -c%s "$f") bytes) |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: '**/build/outputs/apk/debug/*.apk'
+          name: app-release-apk
+          path: '**/build/outputs/apk/release/*.apk'
           if-no-files-found: error
           retention-days: 14

@@ -22,6 +22,11 @@ data class DownloadJob(
     val detail: String? = null,
     val savedCount: Int = 0,
     val openUri: Uri? = null,
+    val attempt: Int = 0,
+    val maxAttempts: Int = 1,
+    /** Diagnóstico legible cuando falla (ver ErrorClassifier). */
+    val errorTitle: String? = null,
+    val hint: String? = null,
 ) {
     val isActive: Boolean
         get() = status == Status.QUEUED || status == Status.RUNNING || status == Status.SAVING

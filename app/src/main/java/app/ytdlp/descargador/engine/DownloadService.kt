@@ -114,7 +114,7 @@ object Notifier {
                 if (ok) android.R.drawable.stat_sys_download_done else android.R.drawable.stat_notify_error
             )
             .setContentTitle(if (ok) "Descarga lista" else "No se pudo descargar")
-            .setContentText(if (ok) (job.title ?: job.label) else (job.detail ?: job.label))
+            .setContentText(if (ok) (job.title ?: job.label) else (job.errorTitle ?: job.detail ?: job.label))
             .setAutoCancel(true)
             .setContentIntent(openApp(ctx))
             .build()

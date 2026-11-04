@@ -1,11 +1,23 @@
 package app.ytdlp.descargador.ui
 
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.ytdlp.descargador.engine.AppSettings
+import app.ytdlp.descargador.engine.ThemeMode
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -13,6 +25,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.ytdlp.descargador.R
 
@@ -126,11 +139,60 @@ val HeroNumber = TextStyle(
     letterSpacing = (-3).sp,
 )
 
+/** Colores de acento disponibles en Ajustes. El primero es la identidad original de la app. */
+data class Accent(
+    val name: String,
+    val light: Color,
+    val lightContainer: Color,
+    val dark: Color,
+    val darkContainer: Color,
+)
+
+val Accents = listOf(
+    Accent("Ultramar", Color(0xFF3A35F0), Color(0xFFDEDFFF), Color(0xFF9A95FF), Color(0xFF2A2C6B)),
+    Accent("Turquesa", Color(0xFF0B7A75), Color(0xFFCCF2EE), Color(0xFF5FD6CD), Color(0xFF0F3F3C)),
+    Accent("Magenta", Color(0xFFB5179E), Color(0xFFFBD9F4), Color(0xFFF08BDD), Color(0xFF5A0F4E)),
+    Accent("Naranja", Color(0xFFC2410C), Color(0xFFFFE0CC), Color(0xFFFFA574), Color(0xFF5E2308)),
+    Accent("Verde", Color(0xFF15803D), Color(0xFFD3F3DE), Color(0xFF7CE0A0), Color(0xFF0F3F20)),
+)
+
+/** Espaciados uniformes de toda la app. */
+object Dimens {
+    val Screen = 20.dp
+    val Gap = 16.dp
+    val Card = 24.dp
+}
+
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (isSystemInDarkTheme()) Dark else Light,
-        typography = type(),
-        content = content,
-    )
+    val prefs by AppSettings.state.collectAsStateWithLifecycle()
+    val dark = when (prefs.themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.LIGHT -> false
+        ThemeMode.DARK -> true
+    }
+    val accent = Accents[prefs.accent.coerceIn(0, Accents.lastIndex)]
+    val scheme = if (dark) {
+        Dark.copy(primary = accent.dark, primaryContainer = accent.darkContainer)
+    } else {
+        Light.copy(primary = accent.light, primaryContainer = accent.lightContainer)
+    }
+
+    // Iconos de la barra de estado/navegación legibles según el tema elegido (no solo el del sistema).
+    val activity = LocalContext.current as? ComponentActivity
+    DisposableEffect(dark) {
+        activity?.enableEdgeToEdge(
+            statusBarStyle = if (dark) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = if (dark) SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+            else SystemBarStyle.light(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+        )
+        onDispose { }
+    }
+
+    // Tamaño de fuente de la app, multiplicado sobre el del sistema.
+    val base = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(base.density, base.fontScale * prefs.fontScale)) {
+        MaterialTheme(colorScheme = scheme, typography = type(), content = content)
+    }
 }

@@ -19,10 +19,13 @@ pensada para el celular.
 Qué APK elegir:
 - `app-arm64-v8a-release.apk` → casi todos los celulares de los últimos años.
 - `app-armeabi-v7a-release.apk` → celulares antiguos de 32 bits.
-- `app-universal-release.apk` → funciona en todos, pero pesa más.
+
+Ya no se genera el APK universal (pesaba ~4 veces más). El tamaño de cada APK aparece
+en el resumen de la ejecución en Actions.
 
 Si prefieres compilar localmente: abre la carpeta con Android Studio y ejecuta
-`./gradlew assembleRelease`.
+`./gradlew assembleRelease`. Para el emulador de Android Studio (x86_64):
+`./gradlew assembleRelease -Pabis=arm64-v8a,armeabi-v7a,x86_64`.
 
 ## Equivalencias con el .bat
 
@@ -55,3 +58,15 @@ en `app/src/main/java/app/ytdlp/descargador/engine/Models.kt`.
   Su versión se cambia en una sola línea (`ytdlpLib`) en `app/build.gradle.kts`.
 - Tipografía: Bricolage Grotesque (SIL Open Font License).
 - Firmado con la llave de depuración: sirve para instalar y usar, no para Play Store.
+
+## Versión 2.0: novedades y verificación
+
+- **Ajustes** (icono de engranaje arriba a la derecha): tema, color de acento, tamaño de fuente,
+  contenedor, carpeta, reintentos, timeout, IPv4, cookies, argumentos extra, motor y diagnóstico.
+- **Exportar log de errores**: Ajustes → Mantenimiento y diagnóstico. Genera un .txt compartible con
+  versiones (app, yt-dlp, Python, ffmpeg), dispositivo, Android, ABI, ajustes y los últimos errores.
+- **Motor actualizado**: youtubedl-android 0.18.1 (agrega QuickJS, que yt-dlp necesita para YouTube) y
+  actualización de yt-dlp al primer arranque y una vez al día.
+- **Prueba de no solapamiento del aviso de cola**:
+  `./gradlew connectedDebugAndroidTest` (necesita emulador o dispositivo).
+- Quita `backup-ytdlp-codigo.zip` del repositorio: es un respaldo viejo y no se usa.

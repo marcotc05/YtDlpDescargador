@@ -69,20 +69,17 @@ fun DownloadsScreen(onGoHome: () -> Unit) {
     val hasFinished = jobs.any { !it.isActive }
 
     Column(Modifier.fillMaxSize()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                "Descargas",
-                style = MaterialTheme.typography.displaySmall,
-                modifier = Modifier.weight(1f),
-            )
-            if (hasFinished) {
+        if (hasFinished) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
                 TextButton(onClick = { DownloadManager.clearFinished() }) { Text("Limpiar terminadas") }
             }
+        } else {
+            Spacer(Modifier.height(4.dp))
         }
 
         if (sorted.isEmpty()) {
@@ -254,15 +251,30 @@ private fun JobRow(job: DownloadJob) {
                     else -> Unit
                 }
             }
-            if (job.status == Status.ERROR && !job.detail.isNullOrBlank()) {
-                Text(
-                    job.detail,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = scheme.error,
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 10.dp),
-                )
+            if (job.status == Status.ERROR) {
+                Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        job.errorTitle ?: "Error",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = scheme.error,
+                    )
+                    if (!job.detail.isNullOrBlank()) {
+                        Text(
+                            job.detail,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.error,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (!job.hint.isNullOrBlank()) {
+                        Text(
+                            job.hint,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
         }
     }

@@ -35,6 +35,7 @@ object Storage {
     fun init(context: Context) {
         app = context.applicationContext
         prefs = app.getSharedPreferences("settings", Context.MODE_PRIVATE)
+        _hasCookies.value = cookiesFile().length() > 0
         val saved = prefs.getString(KEY_TREE, null)?.let { Uri.parse(it) }
         if (saved != null && hasPermission(saved)) {
             _treeUri.value = saved
@@ -69,13 +70,50 @@ object Storage {
 
     // ---------- Temporales ----------
 
-    private fun tempRoot(): File = File(app.getExternalFilesDir(null) ?: app.filesDir, "tmp")
+    // Almacenamiento interno (ext4): evita la capa FUSE del almacenamiento externo, que es más lenta y
+    // puede fallar con rename/utime. Las descargas se copian a su destino final al terminar.
+    private fun tempRoot(): File = File(app.noBackupFilesDir, "tmp")
+
+    /** Bytes libres en la partición de datos. */
+    fun freeBytes(): Long = try {
+        val dir = tempRoot().also { it.mkdirs() }
+        android.os.StatFs(dir.absolutePath).availableBytes
+    } catch (ignored: Exception) {
+        Long.MAX_VALUE
+    }
+
+    // ---------- Cookies (opcional) ----------
+
+    private val _hasCookies = MutableStateFlow(false)
+    val hasCookies: StateFlow<Boolean> = _hasCookies.asStateFlow()
+
+    private fun cookiesFile() = File(app.filesDir, "cookies.txt")
+    fun cookiesPath(): String = cookiesFile().absolutePath
+
+    fun importCookies(uri: Uri): Boolean = try {
+        val input = app.contentResolver.openInputStream(uri) ?: return false
+        input.use { i -> cookiesFile().outputStream().use { i.copyTo(it) } }
+        _hasCookies.value = cookiesFile().length() > 0
+        _hasCookies.value
+    } catch (e: Exception) {
+        AppLog.e("cookies", "No se pudo importar cookies.txt", error = e)
+        false
+    }
+
+    fun clearCookies() {
+        cookiesFile().delete()
+        _hasCookies.value = false
+    }
 
     fun newTempDir(jobId: Long): File =
         File(tempRoot(), "job$jobId-${System.currentTimeMillis()}").also { it.mkdirs() }
 
-    fun cleanTemp() {
-        tempRoot().deleteRecursively()
+    /** Borra los temporales y devuelve los bytes liberados. */
+    fun cleanTemp(): Long {
+        val root = tempRoot()
+        val size = root.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+        root.deleteRecursively()
+        return size
     }
 
     // ---------- Guardado final ----------

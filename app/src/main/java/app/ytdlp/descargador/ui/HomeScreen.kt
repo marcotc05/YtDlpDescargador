@@ -1,5 +1,16 @@
 package app.ytdlp.descargador.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateContentSize
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -61,11 +72,23 @@ import app.ytdlp.descargador.engine.Presets
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun HomeScreen(vm: HomeViewModel, onQueued: () -> Unit) {
+fun HomeScreen(vm: HomeViewModel, onViewQueue: () -> Unit) {
     val engine by DownloadManager.engine.collectAsStateWithLifecycle()
     val ready = engine is DownloadManager.Engine.Ready
     val clipboard = LocalClipboardManager.current
     val focus = LocalFocusManager.current
+
+    // El aviso "Agregada a la cola" vive DENTRO del flujo de la pantalla, encima del botón.
+    // Al no ser una capa flotante (snackbar), es imposible que tape el botón Descargar.
+    var showQueued by remember { mutableStateOf(false) }
+    var queuedTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(queuedTick) {
+        if (queuedTick > 0) {
+            showQueued = true
+            delay(5000)
+            showQueued = false
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -78,7 +101,6 @@ fun HomeScreen(vm: HomeViewModel, onQueued: () -> Unit) {
             Spacer(Modifier.height(8.dp))
 
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("Descargador", style = MaterialTheme.typography.displaySmall)
                 Text(
                     "Pega un enlace y elige qué bajar.",
                     style = MaterialTheme.typography.bodyLarge,
@@ -122,7 +144,9 @@ fun HomeScreen(vm: HomeViewModel, onQueued: () -> Unit) {
                 }
             }
 
-            when (vm.mode) {
+            Box(Modifier.animateContentSize()) {
+              Crossfade(targetState = vm.mode, label = "modo") { mode ->
+            when (mode) {
                 Mode.VIDEO -> Section("Calidad") {
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -199,38 +223,93 @@ fun HomeScreen(vm: HomeViewModel, onQueued: () -> Unit) {
                     FormatsPanel(vm)
                 }
             }
+              }
+            }
 
             Spacer(Modifier.height(8.dp))
         }
 
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp)
-        ) {
-            Button(
-                onClick = {
-                    focus.clearFocus()
-                    vm.submit()
-                    onQueued()
-                },
-                enabled = vm.canSubmit && ready,
+        HomeBottomArea(
+            showQueued = showQueued,
+            canSubmit = vm.canSubmit && ready,
+            buttonLabel = when (engine) {
+                is DownloadManager.Engine.Ready -> "Descargar"
+                is DownloadManager.Engine.Loading -> "Preparando…"
+                is DownloadManager.Engine.Failed -> "Motor no disponible"
+            },
+            onSubmit = {
+                focus.clearFocus()
+                vm.submit()
+                queuedTick++
+            },
+            onViewQueue = {
+                showQueued = false
+                onViewQueue()
+            },
+        )
+    }
+}
+
+/**
+ * Zona inferior fija: [aviso de cola] sobre [botón Descargar], en una sola columna.
+ * El aviso ocupa espacio propio (el contenido de arriba se encoge), por eso nunca se solapa con el botón,
+ * sea cual sea el tamaño de pantalla, la orientación o el tamaño de fuente.
+ */
+@Composable
+internal fun HomeBottomArea(
+    showQueued: Boolean,
+    canSubmit: Boolean,
+    buttonLabel: String,
+    onSubmit: () -> Unit,
+    onViewQueue: () -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp)
+            .padding(top = 8.dp, bottom = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        AnimatedVisibility(visible = showQueued) {
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(58.dp),
-                shape = RoundedCornerShape(18.dp),
+                    .testTag("queued_banner"),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
             ) {
-                Icon(Icons.Rounded.Download, contentDescription = null)
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    when (engine) {
-                        is DownloadManager.Engine.Ready -> "Descargar"
-                        is DownloadManager.Engine.Loading -> "Preparando…"
-                        is DownloadManager.Engine.Failed -> "Motor no disponible"
-                    },
-                    style = MaterialTheme.typography.titleMedium,
-                )
+                Row(
+                    Modifier.padding(start = 16.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Rounded.Check,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        "Agregada a la cola",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                    TextButton(onClick = onViewQueue) { Text("Ver cola") }
+                }
             }
+        }
+        Button(
+            onClick = onSubmit,
+            enabled = canSubmit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(58.dp)
+                .testTag("download_button"),
+            shape = RoundedCornerShape(18.dp),
+        ) {
+            Icon(Icons.Rounded.Download, contentDescription = null)
+            Spacer(Modifier.width(10.dp))
+            Text(buttonLabel, style = MaterialTheme.typography.titleMedium)
         }
     }
 }
