@@ -104,20 +104,11 @@ object DownloadManager {
 
     private fun runUpdate(channel: UpdateChannel) {
         _update.value = UpdateState.Working
-        var outcome = NativeEngine.update(channel)
-        if (outcome is UpdateOutcome.Failed) {
-            try {
-                YoutubeDL.updateYoutubeDL(app)
-                NativeEngine.refreshInfo()
-                outcome = UpdateOutcome.UpToDate(NativeEngine.info.value.ytdlp ?: "?")
-            } catch (e: Throwable) {
-                AppLog.e("engine", "También falló el actualizador de la librería", error = e)
-            }
-        }
-        _update.value = when (val o = outcome) {
-            is UpdateOutcome.Updated -> UpdateState.Done("yt-dlp actualizado a \")
-            is UpdateOutcome.UpToDate -> UpdateState.Done("Ya tienes la última versión (\)")
-            is UpdateOutcome.Failed -> UpdateState.Failed("No se pudo actualizar: \")
+        val outcome = NativeEngine.update(channel)
+        _update.value = when (outcome) {
+            is UpdateOutcome.Updated -> UpdateState.Done("yt-dlp actualizado a ${outcome.to}")
+            is UpdateOutcome.UpToDate -> UpdateState.Done("Ya tienes la última versión (${outcome.version})")
+            is UpdateOutcome.Failed -> UpdateState.Failed("No se pudo actualizar: ${outcome.reason}")
         }
     }
 
@@ -139,10 +130,10 @@ object DownloadManager {
             _update.value = UpdateState.Working
             _update.value = try {
                 NativeEngine.resetToBundled()
-                UpdateState.Done("Se restauró la versión incluida (\)")
+                UpdateState.Done("Se restauró la versión incluida (${NativeEngine.info.value.ytdlp ?: "?"})")
             } catch (e: Throwable) {
                 AppLog.e("engine", "No se pudo restablecer yt-dlp", error = e)
-                UpdateState.Failed("No se pudo restablecer: \")
+                UpdateState.Failed("No se pudo restablecer: ${e.message}")
             }
         }
     }
@@ -188,7 +179,7 @@ object DownloadManager {
             Status.QUEUED -> patch(id) { it.copy(status = Status.CANCELED, detail = "Cancelada") }
             Status.RUNNING -> {
                 canceled.add(id)
-                YoutubeDL.destroyProcessById("job\")
+                YoutubeDL.destroyProcessById("job$id")
             }
             else -> Unit
         }
@@ -278,7 +269,7 @@ object DownloadManager {
                     val wait = backoffMs(attempt)
                     patch(id) {
                         it.copy(
-                            detail = "Reintentando (\/\) en \ s…",
+                            detail = "Reintentando ($attempt/${maxAttempts - 1}) en ${wait / 1000} s…",
                             attempt = attempt + 1, progress = -1f,
                         )
                     }
@@ -288,7 +279,7 @@ object DownloadManager {
             }
 
             patch(id) {
-                it.copy(status = Status.SAVING, progress = 100f, detail = "Guardando en \…")
+                it.copy(status = Status.SAVING, progress = 100f, detail = "Guardando en ${Storage.label.value}…")
             }
             val saved = try {
                 Storage.saveAll(tmp)
@@ -352,7 +343,7 @@ object DownloadManager {
         val tail = ArrayDeque<String>()
         var lastTick = 0L
         try {
-            YoutubeDL.execute(request, "job\", false) { progress, eta, line ->
+            YoutubeDL.execute(request, "job$id", false) { progress, eta, line ->
                 if (line.isNotBlank()) {
                     if (tail.size >= 25) tail.removeFirst()
                     tail.addLast(line)
@@ -367,7 +358,7 @@ object DownloadManager {
                     }
                     val itemMatch = itemRegex.find(line)
                     if (itemMatch != null) {
-                        detail = "Elemento \ de \"
+                        detail = "Elemento ${itemMatch.groupValues[1]} de ${itemMatch.groupValues[2]}"
                     }
                 }
                 
@@ -388,7 +379,7 @@ object DownloadManager {
             val dx = ErrorClassifier.classify(e.message)
             AppLog.e(
                 "download",
-                "\ (intento \/\)",
+                "${dx.kind.title} (intento $attempt/$maxAttempts)",
                 jobFields(job, attempt, maxAttempts) + mapOf(
                     "kind" to dx.kind.name,
                     "stderr" to e.message,
@@ -406,7 +397,7 @@ object DownloadManager {
             "url" to job.url,
             "label" to job.label,
             "options" to job.options.joinToString(" ") { it.joinToString(" ") },
-            "attempt" to "\/\",
+            "attempt" to "$attempt/$maxAttempts",
             "container" to p.container,
             "timeout_s" to p.timeoutSec.toString(),
             "force_ipv4" to p.forceIpv4.toString(),
@@ -437,7 +428,7 @@ object DownloadManager {
             it.copy(status = Status.ERROR, detail = dx.line, errorTitle = dx.kind.title, hint = dx.kind.hint)
         }
         find(id)?.let {
-            AppLog.e("download", "Descarga fallida: \", jobFields(it) + mapOf("kind" to dx.kind.name, "detail" to dx.line))
+            AppLog.e("download", "Descarga fallida: ${dx.kind.title}", jobFields(it) + mapOf("kind" to dx.kind.name, "detail" to dx.line))
             Notifier.finished(app, it)
         }
     }
