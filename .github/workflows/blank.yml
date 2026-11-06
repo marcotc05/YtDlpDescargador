@@ -1,4 +1,4 @@
-name: Build Android APK
+﻿name: Build Android APK
 
 on:
   push:
@@ -47,17 +47,12 @@ jobs:
       - name: Ensure Gradle Wrapper
         run: |
           set -e
-          if [ ! -f "gradlew" ] \
-             || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] \
-             || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-            echo "::warning::Wrapper incompleto; regenerando con Gradle 8.9"
+          if [ ! -f "gradlew" ]; then
             gradle wrapper --gradle-version 8.9 --distribution-type bin
           fi
           chmod +x ./gradlew
           ./gradlew --version
 
-      # El APK release se firma con la llave de depuración (instalable, no apto para Play Store).
-      # Se crea explícitamente para no depender de que AGP la genere en el runner.
       - name: Create debug keystore
         run: |
           mkdir -p ~/.android
@@ -70,19 +65,6 @@ jobs:
 
       - name: Build Release APK (R8 + resource shrinking)
         run: ./gradlew assembleRelease -x lint --stacktrace
-
-      - name: Report APK sizes
-        if: always()
-        run: |
-          {
-            echo "### Tamaño de los APK"
-            echo ""
-            echo "| Archivo | Tamaño |"
-            echo "|---|---|"
-            for f in app/build/outputs/apk/release/*.apk; do
-              [ -f "$f" ] && echo "| $(basename "$f") | $(du -h "$f" | cut -f1) ($(stat -c%s "$f") bytes) |"
-            done
-          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload APK
         if: always()
