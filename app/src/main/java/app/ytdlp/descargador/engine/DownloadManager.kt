@@ -449,4 +449,8 @@ object DownloadManager {
             AppLog.w("service", "No se pudo iniciar el servicio en primer plano", error = ignored)
         }
     }
+    fun remove(id: Long) {
+        _jobs.update { list -> list.filter { it.id != id } }
+    }
 }
+
