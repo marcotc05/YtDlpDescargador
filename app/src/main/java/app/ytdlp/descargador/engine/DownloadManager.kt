@@ -1,4 +1,4 @@
-package app.ytdlp.descargador.engine
+﻿package app.ytdlp.descargador.engine
 
 import android.app.Application
 import android.content.Context
@@ -58,7 +58,7 @@ object DownloadManager {
     private val _jobs = MutableStateFlow<List<DownloadJob>>(emptyList())
     val jobs: StateFlow<List<DownloadJob>> = _jobs.asStateFlow()
 
-    private val _engine = MutableStateFlow<Engine>(Engine.Loading("Preparando el motor…"))
+    private val _engine = MutableStateFlow<Engine>(Engine.Loading("Preparando el motorâ€¦"))
     val engine: StateFlow<Engine> = _engine.asStateFlow()
 
     private val _update = MutableStateFlow<UpdateState>(UpdateState.Idle)
@@ -79,7 +79,7 @@ object DownloadManager {
                     runJob(id)
                 } catch (e: Throwable) {
                     // Si algo inesperado escapa, la cola no debe quedar muerta.
-                    AppLog.e("queue", "runJob falló de forma inesperada", mapOf("job" to id.toString()), e)
+                    AppLog.e("queue", "runJob fallÃ³ de forma inesperada", mapOf("job" to id.toString()), e)
                     fail(id, ErrorClassifier.classify(e.message ?: e.toString()))
                 }
             }
@@ -89,7 +89,7 @@ object DownloadManager {
     // ---------- Motor ----------
 
     private fun initEngine() {
-        _engine.value = Engine.Loading("Preparando el motor…")
+        _engine.value = Engine.Loading("Preparando el motorâ€¦")
         try {
             NativeEngine.purgeIfBuildChanged()
             YoutubeDL.init(app)
@@ -99,7 +99,7 @@ object DownloadManager {
 
             val prefs = AppSettings.current
             if (prefs.autoUpdate && NativeEngine.updateDue()) {
-                _engine.value = Engine.Loading("Actualizando yt-dlp…")
+                _engine.value = Engine.Loading("Actualizando yt-dlpâ€¦")
                 runUpdate(prefs.channel)
             }
             _engine.value = Engine.Ready
@@ -109,7 +109,7 @@ object DownloadManager {
         }
     }
 
-    /** Bloqueante. Intenta nuestro actualizador y, si falla, el de la librería. */
+    /** Bloqueante. Intenta nuestro actualizador y, si falla, el de la librerÃ­a. */
     private fun runUpdate(channel: UpdateChannel) {
         _update.value = UpdateState.Working
         var outcome = NativeEngine.update(channel)
@@ -119,17 +119,17 @@ object DownloadManager {
                 NativeEngine.refreshInfo()
                 outcome = UpdateOutcome.UpToDate(NativeEngine.info.value.ytdlp ?: "?")
             } catch (e: Throwable) {
-                AppLog.e("engine", "También falló el actualizador de la librería", error = e)
+                AppLog.e("engine", "TambiÃ©n fallÃ³ el actualizador de la librerÃ­a", error = e)
             }
         }
         _update.value = when (val o = outcome) {
             is UpdateOutcome.Updated -> UpdateState.Done("yt-dlp actualizado a ${o.to}")
-            is UpdateOutcome.UpToDate -> UpdateState.Done("Ya tienes la última versión (${o.version})")
+            is UpdateOutcome.UpToDate -> UpdateState.Done("Ya tienes la Ãºltima versiÃ³n (${o.version})")
             is UpdateOutcome.Failed -> UpdateState.Failed("No se pudo actualizar: ${o.reason}")
         }
     }
 
-    /** Opción [7] del menú. */
+    /** OpciÃ³n [7] del menÃº. */
     fun updateYtDlp() {
         if (_update.value is UpdateState.Working) return
         if (_jobs.value.any { it.isActive }) {
@@ -148,7 +148,7 @@ object DownloadManager {
             _update.value = UpdateState.Working
             _update.value = try {
                 NativeEngine.resetToBundled()
-                UpdateState.Done("Se restauró la versión incluida (${NativeEngine.info.value.ytdlp ?: "?"})")
+                UpdateState.Done("Se restaurÃ³ la versiÃ³n incluida (${NativeEngine.info.value.ytdlp ?: "?"})")
             } catch (e: Throwable) {
                 AppLog.e("engine", "No se pudo restablecer yt-dlp", error = e)
                 UpdateState.Failed("No se pudo restablecer: ${e.message}")
@@ -164,7 +164,7 @@ object DownloadManager {
         if (prefs.extraArgs.isNotBlank()) request.addCommands(ArgsTokenizer.split(prefs.extraArgs))
     }
 
-    /** Opción [4] del menú: yt-dlp -F */
+    /** OpciÃ³n [4] del menÃº: yt-dlp -F */
     suspend fun listFormats(url: String): String = withContext(Dispatchers.IO) {
         val prefs = AppSettings.current
         val request = YoutubeDLRequest(url)
@@ -229,7 +229,7 @@ object DownloadManager {
         _jobs.update { list -> list.filter { it.isActive } }
     }
 
-    /** Cancela todo, borra temporales y caché. Devuelve los bytes liberados. */
+    /** Cancela todo, borra temporales y cachÃ©. Devuelve los bytes liberados. */
     fun clearCacheAndReset(): Long {
         _jobs.value.filter { it.isActive }.forEach { cancel(it.id) }
         clearFinished()
@@ -239,11 +239,11 @@ object DownloadManager {
             freed += Storage.cleanTemp()
             freed += app.cacheDir.walkBottomUp().filter { it.isFile }.sumOf { f -> val n = f.length(); if (f.delete()) n else 0L }
         }
-        AppLog.i("maintenance", "Caché limpiada y cola reiniciada", mapOf("freedBytes" to freed.toString()))
+        AppLog.i("maintenance", "CachÃ© limpiada y cola reiniciada", mapOf("freedBytes" to freed.toString()))
         return freed
     }
 
-    // ---------- Ejecución ----------
+    // ---------- EjecuciÃ³n ----------
 
     private fun backoffMs(attempt: Int): Long =
         (2_000L shl (attempt - 1).coerceIn(0, 5)).coerceAtMost(60_000L) + Random.nextLong(0, 1_000)
@@ -274,7 +274,7 @@ object DownloadManager {
         canceled.remove(id)
         patch(id) {
             it.copy(
-                status = Status.RUNNING, progress = -1f, detail = "Preparando…", attempt = 1,
+                status = Status.RUNNING, progress = -1f, detail = "Preparandoâ€¦", attempt = 1,
                 maxAttempts = maxAttempts, errorTitle = null, hint = null,
             )
         }
@@ -299,7 +299,7 @@ object DownloadManager {
                     val wait = backoffMs(attempt)
                     patch(id) {
                         it.copy(
-                            detail = "Reintentando (${attempt}/${maxAttempts - 1}) en ${wait / 1000} s…",
+                            detail = "Reintentando (${attempt}/${maxAttempts - 1}) en ${wait / 1000} sâ€¦",
                             attempt = attempt + 1, progress = -1f,
                         )
                     }
@@ -309,7 +309,7 @@ object DownloadManager {
             }
 
             patch(id) {
-                it.copy(status = Status.SAVING, progress = 100f, detail = "Guardando en ${Storage.label.value}…")
+                it.copy(status = Status.SAVING, progress = 100f, detail = "Guardando en ${Storage.label.value}â€¦")
             }
             val saved = try {
                 Storage.saveAll(tmp)
@@ -317,7 +317,7 @@ object DownloadManager {
                 throw DownloadFailure(Diagnosis(ErrorKind.STORAGE, (e.message ?: "Error al guardar").take(260)), e)
             }
             if (saved.isEmpty()) {
-                throw DownloadFailure(Diagnosis(ErrorKind.UNKNOWN, "yt-dlp terminó, pero no generó ningún archivo"), null)
+                throw DownloadFailure(Diagnosis(ErrorKind.UNKNOWN, "yt-dlp terminÃ³, pero no generÃ³ ningÃºn archivo"), null)
             }
             patch(id) {
                 it.copy(
@@ -343,13 +343,12 @@ object DownloadManager {
     private fun executeOnce(job: DownloadJob, prefs: AppPrefs, tmp: File, attempt: Int, maxAttempts: Int) {
         val id = job.id
         val request = YoutubeDLRequest(job.url)
-        job.options.forEach { o ->
-            val flag = o[0]
-            when {
-                o.size == 1 -> request.addOption(flag)
-                flag == "--merge-output-format" -> request.addOption(flag, prefs.container)
-                else -> request.addOption(flag, o[1])
-            }
+        
+        val hasFormat = job.options.any { it.contains("-f") }
+        if (!hasFormat) {
+            request.addOption("-f", "bestvideo+bestaudio/best")
+            request.addOption("--merge-output-format", "mp4")
+        }
         }
         addCommonOptions(request, prefs)
         val template = if (job.playlist) {
@@ -374,8 +373,8 @@ object DownloadManager {
                 itemRegex.find(line)?.let {
                     detail = "Elemento ${it.groupValues[1]} de ${it.groupValues[2]}"
                 }
-                if (line.contains("[Merger]")) detail = "Uniendo audio y video…"
-                if (line.contains("[ExtractAudio]")) detail = "Convirtiendo audio…"
+                if (line.contains("[Merger]")) detail = "Uniendo audio y videoâ€¦"
+                if (line.contains("[ExtractAudio]")) detail = "Convirtiendo audioâ€¦"
 
                 val hasProgress = progress >= 0f
                 val now = SystemClock.elapsedRealtime()
@@ -430,10 +429,10 @@ object DownloadManager {
         val cm = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val caps = cm.getNetworkCapabilities(cm.activeNetwork)
         when {
-            caps == null -> "sin conexión"
+            caps == null -> "sin conexiÃ³n"
             caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> "VPN"
             caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "Wi-Fi"
-            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "datos móviles"
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "datos mÃ³viles"
             caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "Ethernet"
             else -> "otra"
         }
@@ -470,3 +469,4 @@ object DownloadManager {
         }
     }
 }
+
