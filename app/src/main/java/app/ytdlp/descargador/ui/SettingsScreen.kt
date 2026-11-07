@@ -1,4 +1,4 @@
-package app.ytdlp.descargador.ui
+﻿package app.ytdlp.descargador.ui
 
 import android.os.Build
 import android.widget.Toast
@@ -72,7 +72,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.ytdlp.descargador.BuildConfig
+import com.marcotc05.ytdlpdescargador.BuildConfig
 import app.ytdlp.descargador.engine.AppLog
 import app.ytdlp.descargador.engine.AppPrefs
 import app.ytdlp.descargador.engine.AppSettings

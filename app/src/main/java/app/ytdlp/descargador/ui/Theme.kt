@@ -1,4 +1,4 @@
-package app.ytdlp.descargador.ui
+﻿package app.ytdlp.descargador.ui
 
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -27,7 +27,7 @@ import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.ytdlp.descargador.R
+import com.marcotc05.ytdlpdescargador.R
 
 /** Colores de marca que no forman parte del esquema de Material. */
 object Brand {
