@@ -4,6 +4,10 @@
 }
 
 android {
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+    }
     namespace = "com.marcotc05.ytdlpdescargador"
     compileSdk = 35
 

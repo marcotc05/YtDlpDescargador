@@ -2,4 +2,5 @@
     <color name="bg_dark">#0B0D17</color>
     <color name="primary_cyan">#00F0FF</color>
     <color name="accent_pink">#FF0055</color>
+    <color name="window_bg">#FF0C0D1F</color>
 </resources>
