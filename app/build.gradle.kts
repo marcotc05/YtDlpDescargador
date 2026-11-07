@@ -14,6 +14,9 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
+        // Constante requerida por LogExporter, NativeEngine y SettingsScreen
+        buildConfigField("String", "YTDLP_LIB", "\"0.18.1\"")
+
         ndk {
             abiFilters.addAll(setOf("arm64-v8a", "armeabi-v7a", "x86_64"))
         }
@@ -30,8 +33,8 @@ android {
 
     buildTypes {
         release {
+            isMinifyEnabled = false
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -52,8 +55,8 @@ android {
     }
 
     buildFeatures {
-        buildConfig = true
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -64,7 +67,14 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.6")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
     implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.documentfile:documentfile:1.0.1")
+    implementation("androidx.navigation:navigation-compose:2.8.3")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
     implementation(platform("androidx.compose:compose-bom:2024.10.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -72,6 +82,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Motor yt-dlp nativo
     implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")
     implementation("io.github.junkfood02.youtubedl-android:ffmpeg:0.18.1")
 }
