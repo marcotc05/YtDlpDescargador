@@ -4,20 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.ContentPaste
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -291,7 +284,7 @@ fun MainScreen() {
                     }
                 }
 
-                // Alerta de validacion si el usuario intenta descargar vacio
+                // Alerta de validación
                 AnimatedVisibility(
                     visible = validationNotice != null,
                     enter = fadeIn() + expandVertically(),
@@ -318,7 +311,7 @@ fun MainScreen() {
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Botón DESCARGAR (Estilo Aero Liquid Sheen con gradiente de alta energia)
+                // Botón DESCARGAR con borde y brillo especular
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -365,7 +358,6 @@ fun MainScreen() {
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    // Reflejo Aero superior en el boton
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -415,7 +407,7 @@ fun MainScreen() {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Tarjeta 2: Terminal de Consola y Logs (Liquid Glass Nitido)
+                // Tarjeta 2: Terminal de Consola y Logs
                 AeroLiquidCard(
                     modifier = Modifier.fillMaxWidth(),
                     accentColor = Color(0xFF7928CA)
