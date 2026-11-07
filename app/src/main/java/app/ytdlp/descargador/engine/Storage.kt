@@ -1,4 +1,4 @@
-package app.ytdlp.descargador.engine
+﻿package app.ytdlp.descargador.engine
 
 import android.content.ContentValues
 import android.content.Context
@@ -90,7 +90,8 @@ object Storage {
     private fun cookiesFile() = File(app.filesDir, "cookies.txt")
     fun cookiesPath(): String = cookiesFile().absolutePath
 
-    fun importCookies(uri: Uri): Boolean = try {
+    fun importCookies(uri: Uri): Boolean  {
+        return try {
         val input = app.contentResolver.openInputStream(uri) ?: return false
         input.use { i -> cookiesFile().outputStream().use { i.copyTo(it) } }
         _hasCookies.value = cookiesFile().length() > 0
@@ -98,6 +99,7 @@ object Storage {
     } catch (e: Exception) {
         AppLog.e("cookies", "No se pudo importar cookies.txt", error = e)
         false
+    }
     }
 
     fun clearCookies() {
