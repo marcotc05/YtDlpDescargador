@@ -1,21 +1,59 @@
-﻿package com.marcotc05.ytdlpdescargador.ui.theme
+package com.marcotc05.ytdlpdescargador.ui.theme
 
+import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFF00F0FF),
-    secondary = Color(0xFFFF0055),
-    background = Color(0xFF0B0D17),
-    surface = Color(0xFF141926)
+    primary = AeroTeal,
+    secondary = AeroBlue,
+    tertiary = AeroCyanAccent,
+    background = AeroDarkBgBottom,
+    surface = AeroGlassSurface,
+    onPrimary = AeroDarkBgBottom,
+    onBackground = AeroTextPrimaryDark,
+    onSurface = AeroTextPrimaryDark
+)
+
+private val LightColorScheme = lightColorScheme(
+    primary = AeroTeal,
+    secondary = AeroBlue,
+    tertiary = AeroCyanAccent,
+    background = AeroLightBgTop,
+    surface = AeroLightGlassSurface,
+    onPrimary = AeroTextPrimaryLight,
+    onBackground = AeroTextPrimaryLight,
+    onSurface = AeroTextPrimaryLight
 )
 
 @Composable
-fun DownAllTheme(content: @Composable () -> Unit) {
+fun DownAllTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.background.toArgb()
+            window.navigationBarColor = colorScheme.background.toArgb()
+            WindowCompat.getInsetsController(window, view).apply {
+                isAppearanceLightStatusBars = !darkTheme
+                isAppearanceLightNavigationBars = !darkTheme
+            }
+        }
+    }
+
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = colorScheme,
         content = content
     )
 }

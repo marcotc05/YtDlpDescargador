@@ -1,4 +1,4 @@
-﻿package com.marcotc05.ytdlpdescargador.model
+package com.marcotc05.ytdlpdescargador.model
 
 data class DownloadConfig(
     val isAudioOnly: Boolean = false,

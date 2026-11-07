@@ -1,4 +1,4 @@
-﻿package com.marcotc05.ytdlpdescargador.engine
+package com.marcotc05.ytdlpdescargador.engine
 
 import android.content.Context
 import android.os.Environment
@@ -17,10 +17,7 @@ object DownloadEngine {
         onProgress: (Float, String) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            // Directorio temporal interno (sin bloqueo FUSE de almacenamiento externo)
             val cacheDir = File(context.filesDir, "yt_tmp").apply { if (!exists()) mkdirs() }
-
-            // Directorio seguro de descargas (permitido sin permisos invasivos en Android 10+)
             val targetDir = File(
                 context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir,
                 "DownAll"
@@ -59,5 +56,16 @@ object DownloadEngine {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun download(
+        context: Context,
+        url: String,
+        config: DownloadConfig,
+        onProgress: (Float, String) -> Unit,
+        onComplete: (Boolean, String) -> Unit
+    ) {
+        val result = executeDownload(context, url, config, onProgress)
+        result.onSuccess { onComplete(true, it) }.onFailure { onComplete(false, it.message ?: it.toString()) }
     }
 }
