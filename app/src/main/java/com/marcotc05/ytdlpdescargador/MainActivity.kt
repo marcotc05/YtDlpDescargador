@@ -5,17 +5,27 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -23,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.marcotc05.ytdlpdescargador.engine.DownloadEngine
 import com.marcotc05.ytdlpdescargador.model.DownloadConfig
-import com.marcotc05.ytdlpdescargador.ui.GlassmorphicContainer
+import com.marcotc05.ytdlpdescargador.ui.AeroLiquidCard
 import com.marcotc05.ytdlpdescargador.ui.SettingsDialog
 import com.marcotc05.ytdlpdescargador.ui.theme.DownAllTheme
 import kotlinx.coroutines.launch
@@ -35,7 +45,7 @@ class MainActivity : ComponentActivity() {
             DownAllTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = Color(0xFF060913)
                 ) {
                     MainScreen()
                 }
@@ -49,13 +59,14 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val clipboardManager = LocalClipboardManager.current
     val isEngineReady by DownAllApp.isEngineReady.collectAsState()
 
     var inputUrl by remember { mutableStateOf("") }
-    var statusLog by remember { mutableStateOf("SISTEMA LISTO") }
+    var statusLog by remember { mutableStateOf("SISTEMA LISTO: Introduce un enlace para comenzar.") }
     var progressPercent by remember { mutableFloatStateOf(0f) }
     var isProcessing by remember { mutableStateOf(false) }
-    var queueNotice by remember { mutableStateOf<String?>(null) }
+    var validationNotice by remember { mutableStateOf<String?>(null) }
     var showSettings by remember { mutableStateOf(false) }
     var config by remember { mutableStateOf(DownloadConfig()) }
 
@@ -68,170 +79,391 @@ fun MainScreen() {
         )
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "DOWNALL v1.0",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                        color = Color(0xFF00F0FF)
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF080D1A),
+                        Color(0xFF060913),
+                        Color(0xFF03050A)
                     )
-                },
-                actions = {
-                    IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color(0xFF00F0FF))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
             )
-        },
-        containerColor = Color(0xFF0B0D17)
-    ) { innerPadding ->
-        Column(
+    ) {
+        // Orbes de luz ambiental de fondo (Aero Ambient Glow)
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "LÍNEA BASE - MOTOR yt-dlp NATIVO",
-                fontFamily = FontFamily.Monospace,
-                fontSize = 11.sp,
-                color = if (isEngineReady) Color(0xFF00FF66) else Color(0xFFFF3333)
-            )
+                .size(240.dp)
+                .offset(x = (-40).dp, y = (-20).dp)
+                .background(Brush.radialGradient(listOf(Color(0x2600F0FF), Color.Transparent)), CircleShape)
+        )
+        Box(
+            modifier = Modifier
+                .size(260.dp)
+                .align(Alignment.CenterEnd)
+                .offset(x = 60.dp, y = 120.dp)
+                .background(Brush.radialGradient(listOf(Color(0x20FF007F), Color.Transparent)), CircleShape)
+        )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            GlassmorphicContainer(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    OutlinedTextField(
-                        value = inputUrl,
-                        onValueChange = { inputUrl = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("URL de Video o Playlist", color = Color.Gray) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF00F0FF),
-                            unfocusedBorderColor = Color(0x6600F0FF),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        FilterChip(
-                            selected = !config.isAudioOnly,
-                            onClick = { config = config.copy(isAudioOnly = false) },
-                            label = { Text("VIDEO (MP4)", fontFamily = FontFamily.Monospace) }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        FilterChip(
-                            selected = config.isAudioOnly,
-                            onClick = { config = config.copy(isAudioOnly = true) },
-                            label = { Text("AUDIO (MP3)", fontFamily = FontFamily.Monospace) }
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = queueNotice != null,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "DOWNALL",
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 3.sp,
+                                fontSize = 22.sp,
+                                color = Color(0xFF00F0FF)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color(0x3300F0FF))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "v1.0",
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF00F0FF)
+                                )
+                            }
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { showSettings = true },
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color(0x1A00F0FF))
+                        ) {
+                            Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color(0xFF00F0FF))
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                )
+            },
+            containerColor = Color.Transparent
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
+                // Indicador de Estado del Motor Nativo
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(top = 16.dp)
-                        .fillMaxWidth()
-                        .background(Color(0x3300F0FF), RoundedCornerShape(8.dp))
-                        .padding(12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0x1F141F36))
+                        .border(1.dp, Color(0x3300F0FF), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(9.dp)
+                            .background(
+                                color = if (isEngineReady) Color(0xFF00FF66) else Color(0xFFFF3B30),
+                                shape = CircleShape
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isEngineReady) "MOTOR yt-dlp ONLINE" else "INICIALIZANDO MOTOR...",
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isEngineReady) Color(0xFF00FF66) else Color(0xFFFF8888)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Tarjeta 1: Entrada de Enlace (Liquid Glass)
+                AeroLiquidCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    accentColor = Color(0xFF00F0FF)
                 ) {
                     Text(
-                        text = queueNotice ?: "",
+                        text = "ENLACE DE DESCARGA",
                         fontFamily = FontFamily.Monospace,
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color(0xFF00F0FF)
                     )
-                }
-            }
+                    Spacer(modifier = Modifier.height(10.dp))
 
-            Spacer(modifier = Modifier.height(20.dp))
+                    OutlinedTextField(
+                        value = inputUrl,
+                        onValueChange = {
+                            inputUrl = it
+                            if (validationNotice != null) validationNotice = null
+                        },
+                        placeholder = { Text("Pega un enlace de YouTube, video o audio...", color = Color(0xFF6B7A99), fontSize = 13.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(end = 4.dp)) {
+                                if (inputUrl.isNotBlank()) {
+                                    IconButton(onClick = { inputUrl = "" }) {
+                                        Icon(Icons.Default.Clear, contentDescription = "Limpiar", tint = Color.Gray)
+                                    }
+                                }
+                                // Botón PEGAR directo del portapapeles
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0x3300F0FF))
+                                        .clickable {
+                                            val clip = clipboardManager.getText()?.text
+                                            if (!clip.isNullOrBlank()) {
+                                                inputUrl = clip.trim()
+                                                validationNotice = null
+                                            }
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.ContentPaste, contentDescription = null, tint = Color(0xFF00F0FF), modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("PEGAR", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color(0xFF00F0FF), fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF00F0FF),
+                            unfocusedBorderColor = Color(0x4400F0FF),
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            focusedContainerColor = Color(0x22050B14),
+                            unfocusedContainerColor = Color(0x18050B14)
+                        ),
+                        shape = RoundedCornerShape(14.dp)
+                    )
 
-            Button(
-                onClick = {
-                    if (inputUrl.isBlank()) return@Button
-                    queueNotice = "Tarea agregada a la cola. Iniciando motor..."
-                    isProcessing = true
-                    statusLog = "Ejecutando yt-dlp..."
-                    progressPercent = 0f
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                    scope.launch {
-                        DownloadEngine.executeDownload(context, inputUrl, config) { prog, line ->
-                            progressPercent = prog
-                            statusLog = line
-                        }.onSuccess {
-                            statusLog = "Descarga completada satisfactoriamente."
-                            queueNotice = null
-                            isProcessing = false
-                        }.onFailure { err ->
-                            statusLog = "FALLA: " + err.message
-                            queueNotice = null
-                            isProcessing = false
+                    // Selector de Formato (Pill Tabs Aero)
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (!config.isAudioOnly) Color(0x4000F0FF) else Color(0x140E182A))
+                                .border(1.dp, if (!config.isAudioOnly) Color(0xFF00F0FF) else Color(0x2200F0FF), RoundedCornerShape(12.dp))
+                                .clickable { config = config.copy(isAudioOnly = false) }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = if (!config.isAudioOnly) Color.White else Color.Gray, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("VIDEO (MP4)", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (!config.isAudioOnly) Color.White else Color.Gray)
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (config.isAudioOnly) Color(0x40FF007F) else Color(0x140E182A))
+                                .border(1.dp, if (config.isAudioOnly) Color(0xFFFF007F) else Color(0x22FF007F), RoundedCornerShape(12.dp))
+                                .clickable { config = config.copy(isAudioOnly = true) }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Download, contentDescription = null, tint = if (config.isAudioOnly) Color.White else Color.Gray, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("AUDIO (MP3)", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = if (config.isAudioOnly) Color.White else Color.Gray)
+                            }
                         }
                     }
-                },
-                enabled = isEngineReady && !isProcessing,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF0055))
-            ) {
-                Text(
-                    text = if (isProcessing) "PROCESANDO..." else "DESCARGAR",
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
-                )
-            }
-
-            if (isProcessing) {
-                Spacer(modifier = Modifier.height(16.dp))
-                LinearProgressIndicator(
-                    progress = { progressPercent / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFF00F0FF),
-                    trackColor = Color(0x3300F0FF)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            GlassmorphicContainer(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Text(
-                        text = "LOG DE CONSOLA",
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 12.sp,
-                        color = Color(0xFF00F0FF)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = statusLog,
-                        fontFamily = FontFamily.SansSerif,
-                        fontSize = 12.sp,
-                        color = Color(0xFFD0D0D0)
-                    )
                 }
+
+                // Alerta de validacion si el usuario intenta descargar vacio
+                AnimatedVisibility(
+                    visible = validationNotice != null,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 14.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0x33FF3B30))
+                            .border(1.dp, Color(0xFFFF3B30), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = validationNotice ?: "",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFFF6B6B)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Botón DESCARGAR (Estilo Aero Liquid Sheen con gradiente de alta energia)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            brush = if (isEngineReady && !isProcessing) {
+                                Brush.horizontalGradient(listOf(Color(0xFFFF0055), Color(0xFFFF0080), Color(0xFF7928CA)))
+                            } else {
+                                Brush.horizontalGradient(listOf(Color(0xFF333D4D), Color(0xFF222834)))
+                            }
+                        )
+                        .border(
+                            BorderStroke(
+                                1.2.dp,
+                                Brush.verticalGradient(
+                                    listOf(Color(0x80FFFFFF), Color(0x33FFFFFF), Color(0x00000000))
+                                )
+                            ),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .clickable(enabled = isEngineReady && !isProcessing) {
+                            if (inputUrl.isBlank()) {
+                                validationNotice = "POR FAVOR INGRESA O PEGA UN ENLACE DE VIDEO"
+                                return@clickable
+                            }
+                            validationNotice = null
+                            isProcessing = true
+                            progressPercent = 0f
+                            statusLog = "Iniciando motor de extraccion..."
+
+                            scope.launch {
+                                DownloadEngine.executeDownload(context, inputUrl, config) { prog, line ->
+                                    progressPercent = prog
+                                    statusLog = line
+                                }.onSuccess { resultMsg ->
+                                    statusLog = "DESCARGA COMPLETADA CON EXITO!\n$resultMsg"
+                                    isProcessing = false
+                                }.onFailure { err ->
+                                    statusLog = "FALLA EN DESCARGA:\n" + (err.message ?: err.toString())
+                                    isProcessing = false
+                                }
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Reflejo Aero superior en el boton
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.5f)
+                            .align(Alignment.TopCenter)
+                            .background(Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color.Transparent)))
+                    )
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Download,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isProcessing) "PROCESANDO DESCARGA..." else "INICIAR DESCARGA",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 15.sp,
+                            letterSpacing = 2.sp,
+                            color = Color.White
+                        )
+                    }
+                }
+
+                if (isProcessing) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("PROGRESO:", fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = Color(0xFF00F0FF))
+                            Text("${progressPercent.toInt()}%", fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00F0FF))
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(
+                            progress = { progressPercent / 100f },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = Color(0xFF00F0FF),
+                            trackColor = Color(0x3300F0FF)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Tarjeta 2: Terminal de Consola y Logs (Liquid Glass Nitido)
+                AeroLiquidCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    accentColor = Color(0xFF7928CA)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "TERMINAL DE ESTADO",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00F0FF)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0x2200F0FF))
+                                .clickable {
+                                    clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(statusLog))
+                                }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text("COPIAR LOG", fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = Color(0xFF00F0FF))
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0x33000000))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = statusLog,
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
+                            color = Color(0xFFD4E0F5)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }

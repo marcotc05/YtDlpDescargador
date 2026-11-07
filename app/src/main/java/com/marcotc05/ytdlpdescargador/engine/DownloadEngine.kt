@@ -17,35 +17,45 @@ object DownloadEngine {
         onProgress: (Float, String) -> Unit
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            val downloadDir = File(publicDir, "DownAll").apply { if (!exists()) mkdirs() }
+            // Directorio temporal interno (sin bloqueo FUSE de almacenamiento externo)
             val cacheDir = File(context.filesDir, "yt_tmp").apply { if (!exists()) mkdirs() }
 
-            val request = YoutubeDLRequest(url)
+            // Directorio seguro de descargas (permitido sin permisos invasivos en Android 10+)
+            val targetDir = File(
+                context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir,
+                "DownAll"
+            ).apply { if (!exists()) mkdirs() }
+
+            val request = YoutubeDLRequest(url.trim())
             request.addOption("--cache-dir", cacheDir.absolutePath)
             request.addOption("--socket-timeout", config.socketTimeoutSeconds.toString())
             request.addOption("--retries", config.maxRetries.toString())
-            if (config.forceIpv4) request.addOption("--force-ipv4")
+            request.addOption("--no-mtime")
+            if (config.forceIpv4) {
+                request.addOption("--force-ipv4")
+            }
 
             if (config.isAudioOnly) {
                 request.addOption("-x")
                 request.addOption("--audio-format", "mp3")
                 request.addOption("--audio-quality", "0")
-                request.addOption("-o", "${downloadDir.absolutePath}/%(title)s.%(ext)s")
+                request.addOption("-o", "${targetDir.absolutePath}/%(title)s.%(ext)s")
             } else {
                 request.addOption("-f", "bestvideo+bestaudio/best")
                 request.addOption("--merge-output-format", "mp4")
-                request.addOption("-o", "${downloadDir.absolutePath}/%(playlist)s/%(playlist_index)s - %(title)s.%(ext)s")
+                request.addOption("-o", "${targetDir.absolutePath}/%(title)s.%(ext)s")
             }
 
+            val processTag = "DOWNALL_" + System.currentTimeMillis()
             val response = YoutubeDL.getInstance().execute(
                 request = request,
-                processId = "DOWNALL_TASK"
+                processId = processTag
             ) { progress, eta, line ->
-                onProgress(progress, line ?: "ETA: ${eta}s")
+                val lineMsg = line ?: "Progreso: ${progress.toInt()}% (ETA: ${eta}s)"
+                onProgress(progress, lineMsg)
             }
 
-            Result.success(response.out ?: "Descarga completada")
+            Result.success("Guardado en: ${targetDir.absolutePath}\n\nLog:\n${response.out ?: "OK"}")
         } catch (e: Exception) {
             Result.failure(e)
         }

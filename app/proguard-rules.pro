@@ -3,6 +3,10 @@
 -keep class org.apache.commons.io.** { *; }
 -keep class java.util.zip.** { *; }
 -keep class java.util.jar.** { *; }
+-keep class androidx.documentfile.** { *; }
 -dontwarn java.beans.**
 -dontwarn javax.xml.**
 -dontwarn org.apache.commons.**
+-dontwarn com.yausername.**
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod
+-dontobfuscate

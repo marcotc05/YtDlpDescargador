@@ -4,10 +4,6 @@
 }
 
 android {
-    lint {
-        abortOnError = false
-        checkReleaseBuilds = false
-    }
     namespace = "com.marcotc05.ytdlpdescargador"
     compileSdk = 35
 
@@ -18,11 +14,18 @@ android {
         versionCode = 1
         versionName = "1.0.0"
 
-        // Constante requerida por LogExporter, NativeEngine y SettingsScreen
         buildConfigField("String", "YTDLP_LIB", "\"0.18.1\"")
+        resourceConfigurations += setOf("en", "es")
+    }
 
-        ndk {
-            abiFilters.addAll(setOf("arm64-v8a", "armeabi-v7a", "x86_64"))
+    // REDUCCION EXPONENCIAL DE PESO:
+    // Genera APKs específicos por arquitectura (arm64-v8a pesa ~32 MB en lugar de 115 MB)
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = true
         }
     }
 
@@ -31,13 +34,19 @@ android {
             useLegacyPackaging = true
         }
         resources {
-            excludes += setOf("META-INF/DEPENDENCIES", "META-INF/LICENSE*", "META-INF/NOTICE*")
+            excludes += setOf(
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE*",
+                "META-INF/NOTICE*",
+                "META-INF/*.version"
+            )
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -65,6 +74,11 @@ android {
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"
+    }
+
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
     }
 }
 
