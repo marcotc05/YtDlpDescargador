@@ -1,13 +1,8 @@
 ﻿-keep class com.yausername.** { *; }
 -keep class com.fasterxml.jackson.** { *; }
 -keep class org.apache.commons.io.** { *; }
--keep class org.apache.commons.lang3.** { *; }
 -keep class java.util.zip.** { *; }
 -keep class java.util.jar.** { *; }
--keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod
 -dontwarn java.beans.**
 -dontwarn javax.xml.**
--dontwarn org.w3c.dom.**
 -dontwarn org.apache.commons.**
--dontwarn org.slf4j.**
--dontwarn com.fasterxml.jackson.databind.ext.**

@@ -1,3 +1,9 @@
 ﻿<resources>
-    <string name="app_name">The Downloader of All</string>
+    <string name="app_name">DownAll</string>
+    <string name="tagline">RETRO CORE STREAM EXTRACTOR</string>
+    <string name="btn_download">DESCARGAR</string>
+    <string name="hint_url">Introduce el enlace del video o lista...</string>
+    <string name="status_idle">SISTEMA LISTO</string>
+    <string name="status_extracting">INICIALIZANDO MOTOR NATIVO...</string>
+    <string name="queued_notice">Item agregado a la cola de procesamiento</string>
 </resources>

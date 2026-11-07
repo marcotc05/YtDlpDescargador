@@ -1,7 +1,11 @@
-.gradle/
-build/
-local.properties
-.idea/
-*.iml
+﻿*.iml
+.gradle
+/local.properties
+/.idea
 .DS_Store
-backup-ytdlp-codigo.zip
+/build
+/captures
+.externalNativeBuild
+.cxx
+app/build/
+*.apk

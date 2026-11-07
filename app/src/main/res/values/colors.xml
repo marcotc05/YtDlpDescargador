@@ -1,4 +1,5 @@
-<resources>
-    <color name="window_bg">#FFEEF0F8</color>
-    <color name="ic_launcher_background">#FF3A35F0</color>
+﻿<resources>
+    <color name="bg_dark">#0B0D17</color>
+    <color name="primary_cyan">#00F0FF</color>
+    <color name="accent_pink">#FF0055</color>
 </resources>
